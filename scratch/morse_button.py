@@ -32,7 +32,7 @@ def loop():
 
     while True:
         curr_button_pressed = not GPIO.input(MORSE_PIN)
-        
+
         if curr_button_pressed:
             if not prev_button_pressed:  # Button was just pressed
                 # How long was it up?
@@ -42,7 +42,7 @@ def loop():
                     curr_tweet += ' '
                 elif 1.5 * DASH < duration < 3 * DASH:
                     curr_tweet += '  '
-                
+
                 # Keep Track of how long it will be pressed.
                 time_var = millis()
                 prev_button_pressed = True
@@ -54,7 +54,7 @@ def loop():
             if prev_button_pressed:  # Button was just released
                 duration = millis() - time_var
                 time_var = millis()
-                
+
                 # Determine if the duration held was a dot or a dash.
                 if duration <= 1.5 * DOT:
                     curr_tweet += '.'
@@ -64,13 +64,12 @@ def loop():
                 prev_button_pressed = False
             else:  # Button has been up. How long?
                 duration = millis() - time_var
-                
+
                 if duration >= 3 * DASH and tweet_started:
                     print(curr_tweet)
                     curr_tweet = ""
                     tweet_started = False
 
-        
         # Debouncing Kludge
         time.sleep(0.01)
 
