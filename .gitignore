@@ -1,3 +1,5 @@
+secrets.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -83,4 +85,3 @@ Session.vim
 
 # Linux trash folder which might appear on any partition or disk
 .Trash-*
-
