@@ -15,7 +15,7 @@ import tweeting
 
 # Constants
 MORSE_PIN = 12
-DOT = 100  # ms
+DOT = 125  # ms
 DASH = 3 * DOT
 
 
@@ -26,7 +26,7 @@ def millis():
 
 class MorseButton:
     """ Class to keep track of state variables for a morse code button. """
-    def __init__(self, pin, tweet_timeout=3.0):
+    def __init__(self, pin, tweet_timeout=5.0):
         """ Store pin, set up IO. """
         self.pin = pin
         self.tweet_timeout = tweet_timeout
@@ -52,6 +52,9 @@ class MorseButton:
         except morse.MorseCodeDecodeError as e:
             print(e.message, ': ',  e.invalid_str)
 
+        except twitter.api.TwitterHTTPError as t:
+            print(t.message)
+
         self.curr_tweet = ""
         self.tweet_started = False
 
@@ -66,9 +69,9 @@ class MorseButton:
             # If the button was already pressed, record spaces, and restart the
             # tweet printing timer.
             if self.tweet_started:
-                if DASH < duration <= 1.5 * DASH:
+                if DASH < duration <= 2.5 * DASH:
                     self.curr_tweet += ' '
-                elif 1.5 * DASH < duration < 3 * DASH:
+                elif 2.5 * DASH < duration:
                     self.curr_tweet += ' / '
 
                 self.tweet_printer.cancel()
