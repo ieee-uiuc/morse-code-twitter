@@ -8,14 +8,18 @@ from threading import Timer
 
 # Pip Imports
 import RPi.GPIO as GPIO
+import twitter
 
 # Local Imports
 import morse
 import tweeting
 
+from Adafruit_CharLCD.Adafruit_CharLCD import Adafruit_CharLCD
+
 # Constants
-MORSE_PIN = 12
-DOT = 125  # ms
+MORSE_PIN = 18
+BUZZER_PIN = 14
+DOT = 150  # ms
 DASH = 3 * DOT
 
 
@@ -26,20 +30,31 @@ def millis():
 
 class MorseButton:
     """ Class to keep track of state variables for a morse code button. """
-    def __init__(self, pin, tweet_timeout=5.0):
+    def __init__(self, pin, buzzer_pin=BUZZER_PIN, tweet_timeout=5.0):
         """ Store pin, set up IO. """
         self.pin = pin
+        self.buzzer_pin = buzzer_pin
         self.tweet_timeout = tweet_timeout
 
-        GPIO.setmode(GPIO.BOARD)
+        # Set up screen
+        self.lcd = Adafruit_CharLCD()
+        self.lcd.begin(16, 1)
+
+        # Set up other GPIO pins
+        # GPIO.setmode(GPIO.BCM)  # LCD Library uses BCM
         GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(self.buzzer_pin, GPIO.OUT)
+        GPIO.output(self.buzzer_pin, GPIO.LOW)  # turn buzzer OFF
         GPIO.add_event_detect(self.pin, GPIO.BOTH,
-                              callback=self.callback, bouncetime=15)
+                              callback=self.callback, bouncetime=25)
 
         # Set up state variables
         self.time_var = 0
         self.curr_tweet = ""
         self.tweet_started = False
+
+        # Indicate everything is ready
+        print("Start Tweeting!")
 
     def handle_tweet(self):
         """ Function which handles out the current tweet. """
@@ -53,7 +68,7 @@ class MorseButton:
             print(e.message, ': ',  e.invalid_str)
 
         except twitter.api.TwitterHTTPError as t:
-            print(t.message)
+            pass  # It's fine, probably
 
         self.curr_tweet = ""
         self.tweet_started = False
@@ -65,6 +80,8 @@ class MorseButton:
 
         if button_pressed:  # Button was just pressed.
             duration = millis() - self.time_var
+
+            GPIO.output(self.buzzer_pin, GPIO.HIGH)
 
             # If the button was already pressed, record spaces, and restart the
             # tweet printing timer.
@@ -91,6 +108,8 @@ class MorseButton:
         else:  # Button was just released.
             duration = millis() - self.time_var
 
+            GPIO.output(self.buzzer_pin, GPIO.LOW)
+
             # Determine if the duration held was a dot or a dash.
             if duration <= 1.5 * DOT:
                 self.curr_tweet += '.'
@@ -104,7 +123,10 @@ def main():
     button = MorseButton(MORSE_PIN)
     while(True):
         try:
-            pass  # Wait for something to happen.
+            button.lcd.clear()
+            button.lcd.message(button.curr_tweet)
+            time.sleep(0.1)
+
         except KeyboardInterrupt:
             GPIO.cleanup()
             return
