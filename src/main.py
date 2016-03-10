@@ -65,13 +65,20 @@ class MorseButton:
             tweeting.send_tweet(decoded)
 
         except morse.MorseCodeDecodeError as e:
-            print(e.message, ': ',  e.invalid_str)
+            print(e.message, ': ',  e.invalid_str, "")
 
-        except twitter.api.TwitterHTTPError as t:
-            pass  # It's fine, probably
+        except twitter.api.TwitterHTTPError:
+            print("Twitter Error, Try Again!")
 
         self.curr_tweet = ""
         self.tweet_started = False
+
+    def loop(self):
+        """ Handle any business which needs to be handled in a while True loop.
+        """
+        self.lcd.clear()
+        self.lcd.message(self.curr_tweet)
+        time.sleep(0.1)
 
     def callback(self, channel):
         """ Callback to handle button rising and falling edges. """
@@ -123,9 +130,7 @@ def main():
     button = MorseButton(MORSE_PIN)
     while(True):
         try:
-            button.lcd.clear()
-            button.lcd.message(button.curr_tweet)
-            time.sleep(0.1)
+            button.loop()
 
         except KeyboardInterrupt:
             GPIO.cleanup()
