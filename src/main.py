@@ -138,19 +138,19 @@ class MorseButton:
                                            self.handle_tweet)
                 self.tweet_printer.start()
 
-                if self.light_timer.is_alive():
-                    self.light_timer.cancel()
-
-                GPIO.output(self.led.r, GPIO.LOW)
-                GPIO.output(self.led.b, GPIO.LOW)
-                GPIO.output(self.led.g, GPIO.HIGH)
-
             self.time_var = millis()  # Keep track of press time.
 
         else:  # Button was just released.
             duration = millis() - self.time_var
 
             GPIO.output(self.buzzer_pin, GPIO.LOW)
+
+            if self.light_timer.is_alive():
+                self.light_timer.cancel()
+
+            GPIO.output(self.led.r, GPIO.LOW)
+            GPIO.output(self.led.b, GPIO.LOW)
+            GPIO.output(self.led.g, GPIO.HIGH)
 
             # Determine if the duration held was a dot or a dash.
             if duration <= 1.5 * DOT:
