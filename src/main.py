@@ -3,6 +3,7 @@
 # morse-code-twitter
 
 # Standard Library Imports
+import collections
 import time
 from threading import Timer
 
@@ -19,6 +20,11 @@ from Adafruit_CharLCD.Adafruit_CharLCD import Adafruit_CharLCD
 # Constants
 MORSE_PIN = 18
 BUZZER_PIN = 14
+# TODO: Set Pins
+R_PIN = 9
+G_PIN = 9
+B_PIN = 9
+
 DOT = 150  # ms
 DASH = 3 * DOT
 
@@ -28,11 +34,15 @@ def millis():
     return int(round(time.time() * 1000))
 
 
+RGBLEDPins = collections.namedtuple('RGBLEDPins', ['r', 'g', 'b'])
+
+
 class MorseButton:
     """ Class to keep track of state variables for a morse code button. """
-    def __init__(self, pin, buzzer_pin=BUZZER_PIN, tweet_timeout=5.0):
+    def __init__(self, button_pin, buzzer_pin=BUZZER_PIN,
+                 led_pins=(R_PIN, G_PIN, B_PIN), tweet_timeout=5.0):
         """ Store pin, set up IO. """
-        self.pin = pin
+        self.button_pin = button_pin
         self.buzzer_pin = buzzer_pin
         self.tweet_timeout = tweet_timeout
 
@@ -42,11 +52,17 @@ class MorseButton:
 
         # Set up other GPIO pins
         # GPIO.setmode(GPIO.BCM)  # LCD Library uses BCM
-        GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(self.button_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.setup(self.buzzer_pin, GPIO.OUT)
         GPIO.output(self.buzzer_pin, GPIO.LOW)  # turn buzzer OFF
-        GPIO.add_event_detect(self.pin, GPIO.BOTH,
+        GPIO.add_event_detect(self.button_pin, GPIO.BOTH,
                               callback=self.callback, bouncetime=25)
+
+        self.led = RGBLEDPins(r=R_PIN, g=G_PIN, b=B_PIN)
+
+        GPIO.setup(self.led.r, GPIO.OUT)
+        GPIO.setup(self.led.g, GPIO.OUT)
+        GPIO.setup(self.led.b, GPIO.OUT)
 
         # Set up state variables
         self.time_var = 0
@@ -54,6 +70,7 @@ class MorseButton:
         self.tweet_started = False
 
         # Indicate everything is ready
+        GPIO.setup(self.led.g, GPIO.HIGH)
         print("Start Tweeting!")
 
     def handle_tweet(self):
@@ -73,6 +90,11 @@ class MorseButton:
         self.curr_tweet = ""
         self.tweet_started = False
 
+    def light_change(self):
+        """ Change the LED from indicating a dot to indicating a dash. """
+        GPIO.output(self.led.r, GPIO.LOW)
+        GPIO.output(self.led.b, GPIO.HIGH)
+
     def loop(self):
         """ Handle any business which needs to be handled in a while True loop.
         """
@@ -83,12 +105,18 @@ class MorseButton:
     def callback(self, channel):
         """ Callback to handle button rising and falling edges. """
         # Current state of the button is end edge of the transition.
-        button_pressed = not GPIO.input(self.pin)
+        button_pressed = not GPIO.input(self.button_pin)
 
         if button_pressed:  # Button was just pressed.
             duration = millis() - self.time_var
 
             GPIO.output(self.buzzer_pin, GPIO.HIGH)
+
+            self.light_timer = Timer(1.5 * DOT, self.light_change)
+            self.light_timer.start()
+
+            GPIO.output(self.led.g, GPIO.LOW)
+            GPIO.output(self.led.r, GPIO.HIGH)
 
             # If the button was already pressed, record spaces, and restart the
             # tweet printing timer.
@@ -110,6 +138,13 @@ class MorseButton:
                                            self.handle_tweet)
                 self.tweet_printer.start()
 
+                if self.light_timer.is_alive():
+                    self.light_timer.cancel()
+
+                GPIO.output(self.led.r, GPIO.LOW)
+                GPIO.output(self.led.b, GPIO.LOW)
+                GPIO.output(self.led.g, GPIO.HIGH)
+
             self.time_var = millis()  # Keep track of press time.
 
         else:  # Button was just released.
@@ -130,7 +165,7 @@ def main():
     button = MorseButton(MORSE_PIN)
     while(True):
         try:
-            button.loop()
+            button.loop()  # Process anything which needs to be in the loop.
 
         except KeyboardInterrupt:
             GPIO.cleanup()
