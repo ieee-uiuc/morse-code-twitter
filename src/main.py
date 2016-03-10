@@ -20,10 +20,9 @@ from Adafruit_CharLCD.Adafruit_CharLCD import Adafruit_CharLCD
 # Constants
 MORSE_PIN = 18
 BUZZER_PIN = 14
-# TODO: Set Pins
-R_PIN = 9
+R_PIN = 10
 G_PIN = 9
-B_PIN = 9
+B_PIN = 11
 
 DOT = 150  # ms
 DASH = 3 * DOT
@@ -39,7 +38,7 @@ RGBLEDPins = collections.namedtuple('RGBLEDPins', ['r', 'g', 'b'])
 
 class MorseButton:
     """ Class to keep track of state variables for a morse code button. """
-    def __init__(self, button_pin=BUZZER_PIN, buzzer_pin=BUZZER_PIN,
+    def __init__(self, button_pin=MORSE_PIN, buzzer_pin=BUZZER_PIN,
                  led_pins=(R_PIN, G_PIN, B_PIN), tweet_timeout=5.0):
         """ Store pin, set up IO. """
         self.button_pin = button_pin
@@ -70,7 +69,7 @@ class MorseButton:
         self.tweet_started = False
 
         # Indicate everything is ready
-        GPIO.setup(self.led.g, GPIO.HIGH)
+        GPIO.output(self.led.g, GPIO.HIGH)
         print("Start Tweeting!")
 
     def handle_tweet(self):
