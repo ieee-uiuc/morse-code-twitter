@@ -39,7 +39,7 @@ RGBLEDPins = collections.namedtuple('RGBLEDPins', ['r', 'g', 'b'])
 
 class MorseButton:
     """ Class to keep track of state variables for a morse code button. """
-    def __init__(self, button_pin, buzzer_pin=BUZZER_PIN,
+    def __init__(self, button_pin=BUZZER_PIN, buzzer_pin=BUZZER_PIN,
                  led_pins=(R_PIN, G_PIN, B_PIN), tweet_timeout=5.0):
         """ Store pin, set up IO. """
         self.button_pin = button_pin
@@ -58,7 +58,7 @@ class MorseButton:
         GPIO.add_event_detect(self.button_pin, GPIO.BOTH,
                               callback=self.callback, bouncetime=25)
 
-        self.led = RGBLEDPins(r=R_PIN, g=G_PIN, b=B_PIN)
+        self.led = RGBLEDPins(r=led_pins[0], g=led_pins[1], b=led_pins[2])
 
         GPIO.setup(self.led.r, GPIO.OUT)
         GPIO.setup(self.led.g, GPIO.OUT)
@@ -162,7 +162,7 @@ class MorseButton:
 
 
 def main():
-    button = MorseButton(MORSE_PIN)
+    button = MorseButton()
     while(True):
         try:
             button.loop()  # Process anything which needs to be in the loop.
