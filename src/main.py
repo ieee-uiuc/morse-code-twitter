@@ -14,7 +14,6 @@ import twitter
 # Local Imports
 import morse
 import tweeting
-
 from Adafruit_CharLCD.Adafruit_CharLCD import Adafruit_CharLCD
 
 # Constants
@@ -111,7 +110,7 @@ class MorseButton:
 
             GPIO.output(self.buzzer_pin, GPIO.HIGH)
 
-            self.light_timer = Timer(1.5 * DOT, self.light_change)
+            self.light_timer = Timer(1.5 * DOT / 1000, self.light_change)
             self.light_timer.start()
 
             GPIO.output(self.led.g, GPIO.LOW)
