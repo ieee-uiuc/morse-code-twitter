@@ -65,7 +65,9 @@ class MorseButton:
         # Set up state variables
         self.time_var = 0
         self.curr_tweet = ""
+        self.curr_letter = ""
         self.tweet_started = False
+        self.last_button_state = False
 
         # Indicate everything is ready
         GPIO.output(self.led.g, GPIO.HIGH)
@@ -73,19 +75,22 @@ class MorseButton:
 
     def handle_tweet(self):
         """ Function which handles out the current tweet. """
-        print(self.curr_tweet)
-
         try:
-            decoded = morse.decode_message(self.curr_tweet)
-            tweeting.send_tweet(decoded)
-
+            self.curr_tweet += morse.decode_letter(self.curr_letter)
         except morse.MorseCodeDecodeError as e:
-            print(e.message, ': ',  e.invalid_str, "")
+            pass
 
-        except twitter.api.TwitterHTTPError:
-            print("Twitter Error, Try Again!")
+        if len(self.curr_tweet) > 0:
+            try:
+                tweeting.send_tweet(self.curr_tweet)
+
+            except twitter.api.TwitterHTTPError:
+                print("Twitter Error, Try Again!")
+        else:
+            print("Empty Tweet, Try Again!")
 
         self.curr_tweet = ""
+        self.curr_letter = ""
         self.tweet_started = False
 
     def light_change(self):
@@ -97,13 +102,24 @@ class MorseButton:
         """ Handle any business which needs to be handled in a while True loop.
         """
         self.lcd.clear()
-        self.lcd.message(self.curr_tweet)
-        time.sleep(0.1)
+        self.lcd.message(self.curr_tweet[-16:] + "\n")
+        try:
+            decoded = morse.decode_letter(self.curr_letter)
+        except morse.MorseCodeDecodeError as e:
+            # No letter or invalid letter, just display a block
+            decoded = "*"
+
+        self.lcd.message(self.curr_letter.ljust(15) + decoded)
+        time.sleep(0.01667)  # 60Hz?
 
     def callback(self, channel):
         """ Callback to handle button rising and falling edges. """
         # Current state of the button is end edge of the transition.
         button_pressed = not GPIO.input(self.button_pin)
+        if button_pressed == self.last_button_state:
+            return
+
+        self.last_button_state = button_pressed
 
         if button_pressed:  # Button was just pressed.
             duration = millis() - self.time_var
@@ -119,10 +135,18 @@ class MorseButton:
             # If the button was already pressed, record spaces, and restart the
             # tweet printing timer.
             if self.tweet_started:
-                if DASH < duration <= 2.5 * DASH:
-                    self.curr_tweet += ' '
-                elif 2.5 * DASH < duration:
-                    self.curr_tweet += ' / '
+                new_letter = DASH < duration <= 2.5 * DASH
+                new_word = 2.5 * DASH < duration
+                if new_letter or new_word:
+                    if new_word:
+                        self.curr_tweet += " "
+                    try:
+                        decoded = morse.decode_letter(self.curr_letter)
+                        self.curr_tweet += decoded
+                    except morse.MorseCodeDecodeError as e:
+                        print("Invalid Morse Code Character, Moving on")
+
+                    self.curr_letter = ""
 
                 self.tweet_printer.cancel()
                 self.tweet_printer = Timer(self.tweet_timeout,
@@ -152,9 +176,9 @@ class MorseButton:
 
             # Determine if the duration held was a dot or a dash.
             if duration <= 1.5 * DOT:
-                self.curr_tweet += '.'
+                self.curr_letter += '.'
             else:
-                self.curr_tweet += '-'
+                self.curr_letter += '-'
 
             self.time_var = millis()  # Keep track of release time.
 

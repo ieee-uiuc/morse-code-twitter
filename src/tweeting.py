@@ -12,7 +12,7 @@ t = twitter.Twitter(auth=twitter.OAuth(
 
 def send_tweet(tweet):
     """ Given a tweet, tweet it. """
-    print(tweet)
+    print("Tweeting '{}'".format(tweet))
     t.statuses.update(status=tweet)
 
 
